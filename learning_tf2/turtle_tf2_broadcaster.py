@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rclpy
+from rclpy.node import Node
 
 # to get commandline arguments
 import sys
@@ -19,23 +20,51 @@ from geometry_msgs.msg import Quaternion
 # node.create_subscriptionの3番目引数、意味不明
 from rclpy.qos import QoSProfile
 
-def handle_turtle_pose(node, msg, turtlename):
-    br = tf2_ros.TransformBroadcaster()
-    t = geometry_msgs.msg.TransformStamped()
+from math import sin, cos, pi
 
-    t.header.stamp = node.get_clock().now()
-    t.header.frame_id = "world"
-    t.child_frame_id = turtlename
-    t.transform.translation.x = msg.x
-    t.transform.translation.y = msg.y
-    t.transform.translation.z = 0.0
-    q = euler_to_quaternion(0, 0, msg.theta)
-    t.transform.rotation.x = q[0]
-    t.transform.rotation.y = q[1]
-    t.transform.rotation.z = q[2]
-    t.transform.rotation.w = q[3]
+class StatePublisher(Node):
+    def __init__(self):
+        # 書き換え参考 https://docs.ros.org/en/foxy/Contributing/Migration-Guide-Python.html
+        rclpy.init()
+        # rospy.init_node('tf2_turtle_broadcaster')
 
-    br.sendTransform(t)
+        self.qos_profile = QoSProfile(depth=10)
+
+        super().__init__('tf2_turtle_broadcaster')
+        
+        # turtlename = node.declare_parameter('~turtle')
+        self.turtlename = sys.argv[1]
+        # rospy.Subscriber('/%s/pose' % turtlename,
+        #                  turtlesim.msg.Pose,
+        #                  handle_turtle_pose,
+        #                  turtlename)
+        self.create_subscription(turtlesim.msg.Pose, '/%s/pose' % self.turtlename, self.handle_turtle_pose, self.qos_profile)
+        rclpy.spin(self)
+
+    def handle_turtle_pose(self, msg):
+        # なぜmsgを渡せれるかは不明
+        self.br = tf2_ros.TransformBroadcaster(self, qos = self.qos_profile)
+        self.nodeName = self.get_name()
+        self.get_logger().info("{0} started".format(self.nodeName))
+    
+        t = geometry_msgs.msg.TransformStamped()
+        now = self.get_clock().now()
+        t.header.stamp = now.to_msg()
+        t.header.frame_id = "world"
+        t.child_frame_id = self.turtlename
+        t.transform.translation.x = msg.x
+        t.transform.translation.y = msg.y
+        # カメは二次元でしか動かないので、zを0.0に
+        t.transform.translation.z = 0.0
+        # TypeError: 'Quaternion' object is not subscriptableになるので、rrclpyで回転を計算する方法を探す
+        # q = euler_to_quaternion(0, 0, msg.theta)
+        # t.transform.rotation.x = q[0]
+        # t.transform.rotation.y = q[1]
+        # t.transform.rotation.z = q[2]
+        # t.transform.rotation.w = q[3]
+    
+        self.br.sendTransform(t)
+
 
 def euler_to_quaternion(roll, pitch, yaw):
     qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2)
@@ -44,22 +73,8 @@ def euler_to_quaternion(roll, pitch, yaw):
     qw = cos(roll/2) * cos(pitch/2) * cos(yaw/2) + sin(roll/2) * sin(pitch/2) * sin(yaw/2)
     return Quaternion(x=qx, y=qy, z=qz, w=qw)
 
-def main():
-    # 書き換え参考 https://docs.ros.org/en/foxy/Contributing/Migration-Guide-Python.html
-    rclpy.init(args=sys.argv)
-    # rospy.init_node('tf2_turtle_broadcaster')
-
-    qos_profile = QoSProfile(depth=10)
-
-    node = rclpy.create_node('tf2_turtle_broadcaster')
-    turtlename = node.declare_parameter('~turtle')
-    # rospy.Subscriber('/%s/pose' % turtlename,
-    #                  turtlesim.msg.Pose,
-    #                  handle_turtle_pose,
-    #                  turtlename)
-    node.create_subscription(turtlesim.msg.Pose, '/%s/pose' % turtlename, qos_profile, handle_turtle_pose, turtlename)
-    rclpy.spin(node)
-
-
 if __name__ == '__main__':
     main()
+
+def main():
+    node = StatePublisher()
