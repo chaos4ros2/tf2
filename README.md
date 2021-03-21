@@ -16,4 +16,8 @@ http://wiki.ros.org/tf2/Tutorials
 3/17
 ・turtle_tf2_broadcaster.pyをクラスベースで書き換え
 ・rviz2での動作確認OK 
-  ros2 run learning_tf2 turtle_tf2_broadcaster turtle1 　 
+  ros2 run learning_tf2 turtle_tf2_broadcaster turtle1
+  
+3/21
+・複数nodeを同時起動するlaunch.pyの追加
+・回転を正しく計算できるようにturtle_tf2_broadcaster.pyの修正
