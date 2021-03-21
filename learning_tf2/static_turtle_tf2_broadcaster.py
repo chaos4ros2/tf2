@@ -17,6 +17,7 @@ import geometry_msgs.msg
 # 参考 https://github.com/benbongalon/ros2-urdf-tutorial/blob/master/urdf_tutorial/urdf_tutorial/state_publisher.py
 from geometry_msgs.msg import Quaternion
 
+from math import sin, cos, pi
 
 class StatePublisher(Node):
     def __init__(self):

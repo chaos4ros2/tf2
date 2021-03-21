@@ -56,15 +56,16 @@ class StatePublisher(Node):
         t.transform.translation.y = msg.y
         # カメは二次元でしか動かないので、zを0.0に
         t.transform.translation.z = 0.0
+        
         # TypeError: 'Quaternion' object is not subscriptableになるので、rrclpyで回転を計算する方法を探す
         # q = euler_to_quaternion(0, 0, msg.theta)
         # t.transform.rotation.x = q[0]
         # t.transform.rotation.y = q[1]
         # t.transform.rotation.z = q[2]
         # t.transform.rotation.w = q[3]
+        t.transform.rotation = euler_to_quaternion(0, 0, msg.theta) # roll,pitch,yaw
     
         self.br.sendTransform(t)
-
 
 def euler_to_quaternion(roll, pitch, yaw):
     qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2)
